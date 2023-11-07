@@ -7,6 +7,9 @@ import numpy as np
 from omegaconf import OmegaConf
 import torch 
 
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+
 from mvdream.camera_utils import get_camera
 from mvdream.ldm.util import instantiate_from_config
 from mvdream.ldm.models.diffusion.ddim import DDIMSampler
