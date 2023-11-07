@@ -33,18 +33,29 @@ def t2i(model, image_size, prompt, uc, sampler, step=20, scale=7.5, batch_size=8
             c_["camera"] = uc_["camera"] = camera
             c_["num_frames"] = uc_["num_frames"] = num_frames
 
+        # Compressed images (4) of size 32x32 with 4 channels
         shape = [4, image_size // 8, image_size // 8]
-        samples_ddim, _ = sampler.sample(S=step, conditioning=c_,
+        samples_ddim, intermediaries = sampler.sample(S=step, conditioning=c_,
                                         batch_size=batch_size, shape=shape,
-                                        verbose=False, 
+                                        verbose=True,
+                                        log_every_t=2, 
                                         unconditional_guidance_scale=scale,
                                         unconditional_conditioning=uc_,
                                         eta=ddim_eta, x_T=None)
+        
+        decoded_intermediaries = []
+        for inter_samples_ddim in intermediaries["x_inter"]:
+            # Decode (upscale) the images
+            x_sample = model.decode_first_stage(inter_samples_ddim) 
+            x_sample = torch.clamp((x_sample + 1.0) / 2.0, min=0.0, max=1.0)
+            x_sample = 255. * x_sample.permute(0,2,3,1).cpu().numpy()
+            decoded_intermediaries.append(list(x_sample.astype(np.uint8)))
+
         x_sample = model.decode_first_stage(samples_ddim)
         x_sample = torch.clamp((x_sample + 1.0) / 2.0, min=0.0, max=1.0)
         x_sample = 255. * x_sample.permute(0,2,3,1).cpu().numpy()
-
-    return list(x_sample.astype(np.uint8))
+        
+    return (list(x_sample.astype(np.uint8)), decoded_intermediaries)
 
 
 if __name__ == "__main__":
@@ -97,10 +108,14 @@ if __name__ == "__main__":
     t = args.text + args.suffix
     set_seed(args.seed)
     images = []
-    for j in range(3):
-        img = t2i(model, args.size, t, uc, sampler, step=50, scale=10, batch_size=batch_size, ddim_eta=0.0, 
-                dtype=dtype, device=device, camera=camera, num_frames=args.num_frames)
-        img = np.concatenate(img, 1)
-        images.append(img)
-    images = np.concatenate(images, 0)
-    Image.fromarray(images).save(f"sample.png")
+    #for j in range(3):
+    img, inter_images = t2i(model, args.size, t, uc, sampler, step=50, scale=10, batch_size=batch_size, ddim_eta=0.0, 
+            dtype=dtype, device=device, camera=camera, num_frames=args.num_frames)
+    #    img = np.concatenate(img, 1)
+    #    images.append(img)
+    
+    for idx, inter_img in enumerate(inter_images):
+        images = np.concatenate(inter_img, 1)
+        Image.fromarray(images).save(f"inter{idx}.png")
+
+    Image.fromarray(images).save(f"sample3.png")

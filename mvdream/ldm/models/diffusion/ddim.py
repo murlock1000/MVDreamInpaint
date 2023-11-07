@@ -122,6 +122,13 @@ class DDIMSampler(object):
             img = torch.randn(shape, device=device)
         else:
             img = x_T
+        # img.shape = (4, 4, 32, 32) region with ones (1) will be preserved
+        mask = torch.zeros(img.shape, device=device)
+       # mask[0, :3, :16, :] = 1
+       # mask[1, :3, :, :16] = 1
+       # mask[2, :3, 16:, :] = 1
+       # mask[3, :3, :, 16:] = 1
+        x0 = img
 
         if timesteps is None:
             timesteps = self.ddpm_num_timesteps if ddim_use_original_steps else self.ddim_timesteps
@@ -138,7 +145,7 @@ class DDIMSampler(object):
         for i, step in enumerate(iterator):
             index = total_steps - i - 1
             ts = torch.full((b,), step, device=device, dtype=torch.long)
-
+            # Mask requires starting image, the masked region is randomised and overlaid over the original image
             if mask is not None:
                 assert x0 is not None
                 img_orig = self.model.q_sample(x0, ts)  # TODO: deterministic forward pass?

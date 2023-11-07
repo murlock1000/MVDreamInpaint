@@ -6,6 +6,9 @@ import gradio as gr
 from omegaconf import OmegaConf
 import torch 
 
+import os
+os.environ["KMP_DUPLICATE_LIB_OK"]="TRUE"
+
 from mvdream.camera_utils import get_camera
 from mvdream.ldm.util import instantiate_from_config
 from mvdream.ldm.models.diffusion.ddim import DDIMSampler
@@ -122,10 +125,10 @@ if __name__ == "__main__":
         gr.Examples(
             [   
                 ["an astronaut riding a horse"] + default_params,
-                ["an earth"] + default_params,
-                ["a statue of a cute cat"] + default_params,
-                ["Luffy from one piece, head, super detailed, best quality, 4K, HD"] + default_params,
-                ["higly detailed, majestic royal tall ship, realistic painting, by Charles Gregory Artstation and Antonio Jacobsen and Edward Moran, intricated details, blender, hyperrealistic, 4k, HD"] + default_params,
+                #["an earth"] + default_params,
+               # ["a statue of a cute cat"] + default_params,
+                #["Luffy from one piece, head, super detailed, best quality, 4K, HD"] + default_params,
+               # ["higly detailed, majestic royal tall ship, realistic painting, by Charles Gregory Artstation and Antonio Jacobsen and Edward Moran, intricated details, blender, hyperrealistic, 4k, HD"] + default_params,
             ],
             inputs,
             image_output,
