@@ -22,7 +22,7 @@ def set_seed(seed):
     torch.cuda.manual_seed_all(seed)
 
 
-def t2i(model, image_size, prompt, uc, sampler, step=20, scale=7.5, batch_size=8, ddim_eta=0., dtype=torch.float32, device="cuda", camera=None, num_frames=1):
+def t2i(model, image_size, prompt, uc, sampler, step=20, scale=7.5, batch_size=8, ddim_eta=0., dtype=torch.float32, device="cuda", camera=None, num_frames=1, x0=None):
     if type(prompt)!=list:
         prompt = [prompt]
     with torch.no_grad(), torch.autocast(device_type=device, dtype=dtype):
@@ -33,7 +33,7 @@ def t2i(model, image_size, prompt, uc, sampler, step=20, scale=7.5, batch_size=8
             c_["camera"] = uc_["camera"] = camera
             c_["num_frames"] = uc_["num_frames"] = num_frames
 
-        # Compressed images (4) of size 32x32 with 4 channels
+        # 4 channels of size 32x32, batch_size = 4 (4 frames per batch)
         shape = [4, image_size // 8, image_size // 8]
         samples_ddim, intermediaries = sampler.sample(S=step, conditioning=c_,
                                         batch_size=batch_size, shape=shape,
@@ -41,7 +41,7 @@ def t2i(model, image_size, prompt, uc, sampler, step=20, scale=7.5, batch_size=8
                                         log_every_t=2, 
                                         unconditional_guidance_scale=scale,
                                         unconditional_conditioning=uc_,
-                                        eta=ddim_eta, x_T=None)
+                                        eta=ddim_eta, x_T=None, x0=x0)
         
         decoded_intermediaries = []
         for inter_samples_ddim in intermediaries["x_inter"]:
@@ -97,6 +97,17 @@ if __name__ == "__main__":
     uc = model.get_learned_conditioning( [""] ).to(device)
     print("load t2i model done . ")
 
+    # Load images
+
+    x0_img = np.array(Image.open("sample3.png"))[:, :256, :3].astype(np.float32)
+    x0_img = x0_img[np.newaxis, :, :, :].transpose(0, 3, 1, 2)
+    
+    x0_img = torch.from_numpy(x0_img).to("cuda")
+    # Requires shape (1, 3, 128, 128) -> (#batches, #chans (RGB), w, h)
+
+    x0 = model.encode_first_stage(x0_img)
+    x0 = model.get_first_stage_encoding(x0)
+    x0 = x0.expand(4, -1, -1, -1) # Tile the image to simulate multiple tiles for now.
     # pre-compute camera matrices
     if args.use_camera:
         camera = get_camera(args.num_frames, elevation=args.camera_elev, 
@@ -110,7 +121,7 @@ if __name__ == "__main__":
     images = []
     #for j in range(3):
     img, inter_images = t2i(model, args.size, t, uc, sampler, step=50, scale=10, batch_size=batch_size, ddim_eta=0.0, 
-            dtype=dtype, device=device, camera=camera, num_frames=args.num_frames)
+            dtype=dtype, device=device, camera=camera, num_frames=args.num_frames, x0=x0)
     #    img = np.concatenate(img, 1)
     #    images.append(img)
     
@@ -118,4 +129,4 @@ if __name__ == "__main__":
         images = np.concatenate(inter_img, 1)
         Image.fromarray(images).save(f"inter{idx}.png")
 
-    Image.fromarray(images).save(f"sample3.png")
+    Image.fromarray(images).save(f"sampleWithMask.png")

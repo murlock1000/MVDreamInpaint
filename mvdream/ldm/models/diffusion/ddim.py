@@ -119,16 +119,17 @@ class DDIMSampler(object):
         device = self.model.betas.device
         b = shape[0]
         if x_T is None:
-            img = torch.randn(shape, device=device)
+            img = torch.randn(shape, device=device) # Initialize random latent representation (4, 4, 32, 32)
         else:
             img = x_T
         # img.shape = (4, 4, 32, 32) region with ones (1) will be preserved
         mask = torch.zeros(img.shape, device=device)
-       # mask[0, :3, :16, :] = 1
-       # mask[1, :3, :, :16] = 1
-       # mask[2, :3, 16:, :] = 1
-       # mask[3, :3, :, 16:] = 1
-        x0 = img
+        mask[0, :, :, :] = 1
+        #mask[1, :, :, :16] = 1
+        #mask[2, :, :, :] = 1
+        #mask[3, :, :, 16:] = 1
+       # mask = None
+        #x0 = img
 
         if timesteps is None:
             timesteps = self.ddpm_num_timesteps if ddim_use_original_steps else self.ddim_timesteps
