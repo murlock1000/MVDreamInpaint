@@ -57,6 +57,13 @@ def t2i(model, image_size, prompt, uc, sampler, step=20, scale=7.5, batch_size=8
         
     return (list(x_sample.astype(np.uint8)), decoded_intermediaries)
 
+def test(sample, fname):
+    sample = 255. * sample.permute(0,2,3,1).cpu().numpy()
+        
+    images = list(sample.astype(np.uint8))
+
+    images = np.concatenate(images, 1)
+    Image.fromarray(images).save(fname)
 
 if __name__ == "__main__":
 
@@ -64,7 +71,7 @@ if __name__ == "__main__":
     parser.add_argument("--model_name", type=str, default="sd-v2.1-base-4view", help="load pre-trained model from hugginface")
     parser.add_argument("--config_path", type=str, default=None, help="load model from local config (override model_name)")
     parser.add_argument("--ckpt_path", type=str, default=None, help="path to local checkpoint")
-    parser.add_argument("--text", type=str, default="an astronaut riding a horse")
+    parser.add_argument("--text", type=str, default="a toy dinosaur trex")#"an astronaut riding a horse")
     parser.add_argument("--suffix", type=str, default=", 3d asset")
     parser.add_argument("--size", type=int, default=256)
     parser.add_argument("--num_frames", type=int, default=4, help="num of frames (views) to generate")
@@ -99,15 +106,36 @@ if __name__ == "__main__":
 
     # Load images
 
-    x0_img = np.array(Image.open("sample3.png"))[:, :256, :3].astype(np.float32)
-    x0_img = x0_img[np.newaxis, :, :, :].transpose(0, 3, 1, 2)
+    x0_imgs = []
+    for i in range(4):
+        x0_img = np.array(Image.open("Dinosaur_test_bck.png"))[:, i*256:((i+1)*256), :3].astype(np.float32)
+        x0_imgs.append(x0_img)
+
+    x0_img = np.stack(x0_imgs, axis=0)
+
+    for idx, img in enumerate(x0_imgs):
+        #images = np.concatenate(x0_img, 1)
+        Image.fromarray(img.astype(np.uint8)).save(f"TestReshape{idx}.png")
+
+    x0_img = x0_img.transpose(0, 3, 1, 2)
     
     x0_img = torch.from_numpy(x0_img).to("cuda")
     # Requires shape (1, 3, 128, 128) -> (#batches, #chans (RGB), w, h)
 
-    x0 = model.encode_first_stage(x0_img)
-    x0 = model.get_first_stage_encoding(x0)
-    x0 = x0.expand(4, -1, -1, -1) # Tile the image to simulate multiple tiles for now.
+    with torch.no_grad(), torch.autocast(device_type=device, dtype=dtype):
+        x0 = model.encode_first_stage(x0_img)
+        x0 = model.get_first_stage_encoding(x0)
+        #x0 = x0.expand(4, -1, -1, -1) # Tile the image to simulate multiple tiles for now.
+
+        x_sample = model.decode_first_stage(x0)
+        x_sample = torch.clamp((x_sample + 1.0) / 2.0, min=0.0, max=1.0)
+        x_sample = 255. * x_sample.permute(0,2,3,1).cpu().numpy()
+        
+        images = list(x_sample.astype(np.uint8))
+
+        images = np.concatenate(images, 1)
+        Image.fromarray(images).save(f"EncDecoded.png")
+    #c = 1/0
     # pre-compute camera matrices
     if args.use_camera:
         camera = get_camera(args.num_frames, elevation=args.camera_elev, 
@@ -127,6 +155,6 @@ if __name__ == "__main__":
     
     for idx, inter_img in enumerate(inter_images):
         images = np.concatenate(inter_img, 1)
-        Image.fromarray(images).save(f"inter{idx}.png")
+        Image.fromarray(images).save(f"Dinosaur_HalfMask_inter_{idx}.png")
 
     Image.fromarray(images).save(f"sampleWithMask.png")

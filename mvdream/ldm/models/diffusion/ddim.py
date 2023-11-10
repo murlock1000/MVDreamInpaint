@@ -123,13 +123,14 @@ class DDIMSampler(object):
         else:
             img = x_T
         # img.shape = (4, 4, 32, 32) region with ones (1) will be preserved
-        mask = torch.zeros(img.shape, device=device)
-        mask[0, :, :, :] = 1
-        #mask[1, :, :, :16] = 1
-        #mask[2, :, :, :] = 1
-        #mask[3, :, :, 16:] = 1
+        mask = torch.ones(img.shape, device=device)
+        mask[0, :, :, :16] = 0
+        mask[1, :, :16, :] = 0
+        mask[2, :, 16:, :] = 0
+        mask[3, :, :, 16:] = 0
        # mask = None
         #x0 = img
+        #mask = None
 
         if timesteps is None:
             timesteps = self.ddpm_num_timesteps if ddim_use_original_steps else self.ddim_timesteps
