@@ -65,6 +65,21 @@ def test(sample, fname):
     images = np.concatenate(images, 1)
     Image.fromarray(images).save(fname)
 
+from diffusers import AutoencoderKL 
+
+vae = AutoencoderKL.from_pretrained("CompVis/stable-diffusion-v1-4", subfolder="vae", torch_dtype=torch.float32).to("cuda")
+from torchvision import transforms as tfms  
+
+def pil_to_latents(image):
+    '''
+    Function to convert image to latents     
+    '''     
+    init_image = tfms.ToTensor()(image).unsqueeze(0) * 2.0 - 1.0
+    print(init_image.shape)
+    init_image = init_image.to(device="cuda", dtype=torch.float32)
+    init_latent_dist = vae.encode(init_image).latent_dist.sample() * 0.18215     
+    return init_latent_dist  
+
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
@@ -109,6 +124,7 @@ if __name__ == "__main__":
     x0_imgs = []
     for i in range(4):
         x0_img = np.array(Image.open("Dinosaur_test_bck.png"))[:, i*256:((i+1)*256), :3].astype(np.float32)
+        #x0_img = Image.open("Dinosaur_test_bck.png")[:, i*256:((i+1)*256), :3].astype(np.float32)
         x0_imgs.append(x0_img)
 
     x0_img = np.stack(x0_imgs, axis=0)
