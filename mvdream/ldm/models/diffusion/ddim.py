@@ -123,11 +123,11 @@ class DDIMSampler(object):
         else:
             img = x_T
         # img.shape = (4, 4, 32, 32) region with ones (1) will be preserved
-        mask = torch.ones(img.shape, device=device)
-        mask[0, :, :, :16] = 0
-        mask[1, :, :16, :] = 0
-        mask[2, :, 16:, :] = 0
-        mask[3, :, :, 16:] = 0
+       # mask = torch.ones(img.shape, device=device)
+       # mask[0, :, :, :16] = 0
+       # mask[1, :, :16, :] = 0
+       # mask[2, :, 16:, :] = 0
+       # mask[3, :, :, 16:] = 0
        # mask = None
         #x0 = img
         #mask = None
