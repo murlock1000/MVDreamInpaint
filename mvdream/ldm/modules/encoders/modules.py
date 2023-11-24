@@ -144,9 +144,10 @@ class FrozenOpenCLIPEmbedder(AbstractEncoder):
                 freeze=True, layer="last"):
         super().__init__()
         assert layer in self.LAYERS
-        model, _, _ = open_clip.create_model_and_transforms(arch, device=torch.device('cpu'), pretrained=version)
+        model, _, preprocess = open_clip.create_model_and_transforms(arch, device=torch.device('cpu'), pretrained=version)
         del model.visual
         self.model = model
+        self.preprocess = preprocess
 
         self.device = device
         self.max_length = max_length
