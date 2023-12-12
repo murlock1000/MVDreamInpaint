@@ -74,6 +74,7 @@ class DDIMSampler(object):
                log_every_t=100,
                unconditional_guidance_scale=1.,
                unconditional_conditioning=None,
+               ddim_discretize="uniform",
                # this has to come in the same format as the conditioning, # e.g. as encoded tokens, ...
                **kwargs
                ):
@@ -86,7 +87,7 @@ class DDIMSampler(object):
                 if conditioning.shape[0] != batch_size:
                     print(f"Warning: Got {conditioning.shape[0]} conditionings but batch-size is {batch_size}")
 
-        self.make_schedule(ddim_num_steps=S, ddim_eta=eta, verbose=verbose)
+        self.make_schedule(ddim_num_steps=S, ddim_eta=eta, verbose=verbose, ddim_discretize=ddim_discretize)
         # sampling
         C, H, W = shape
         size = (batch_size, C, H, W)
