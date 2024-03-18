@@ -7,8 +7,8 @@ def create_camera_to_world_matrix(elevation, azimuth):
     azimuth = np.radians(azimuth)
     # Convert elevation and azimuth angles to Cartesian coordinates on a unit sphere
     x = np.cos(elevation) * np.sin(azimuth)
-    y = np.sin(elevation)
-    z = np.cos(elevation) * np.cos(azimuth)
+    z = np.sin(elevation)
+    y = np.cos(elevation) * np.cos(azimuth)
     
     # Calculate camera position, target, and up vectors
     camera_pos = np.array([x, y, z])
